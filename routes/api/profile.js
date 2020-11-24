@@ -1,38 +1,57 @@
 const express = require('express');
-const aws = require('aws-sdk');
+// const aws = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const multer = require('multer');
 const path = require('path');
-const url = require('url');
+// const url = require('url');
 var fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+// const helpers = require('helpers');
+const mongoose = require("mongoose");
 
 const router = express.Router();
 /**
  * PROFILE IMAGE STORING STARTS
  */
-const s3 = new aws.S3({
-    accessKeyId: 'AKIAXCV6CW7UKGRQDA4N',
-    secretAccessKey: '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',
-    Bucket: 'zakharnewbucket'
-});
+// const s3 = new aws.S3({
+//     accessKeyId: 'AKIAXCV6CW7UKGRQDA4N',
+//     secretAccessKey: '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',
+//     Bucket: 'zakharnewbucket'
+// });
 /**
 * Single Upload
 */
+
+
+const storage = multer.diskStorage({
+    destination: "./public/",
+    filename: function (req, file, cb) {
+        cb(null, "IMAGE-" + Date.now() + path.extname(file.originalname));
+    }
+});
+
 const profileImgUpload = multer({
-    storage: multerS3({
-        s3: s3,
-        bucket: 'zakharnewbucket',
-        acl: 'public-read',
-        key: function (req, file, cb) {
-            cb(null, path.basename(file.originalname, path.extname(file.originalname)) + '-' + Date.now() + path.extname(file.originalname))
-        }
-    }),
-    // limits: { fileSize: 2000000 }, // In bytes: 2000000 bytes = 2 MB
+    storage: storage,
     fileFilter: function (req, file, cb) {
         checkFileType(file, cb);
     }
 }).single('profileImage');
+
+
+// const profileImgUpload = multer({
+//     storage: multerS3({
+//         s3: s3,
+//         bucket: 'zakharnewbucket',
+//         acl: 'public-read',
+//         key: function (req, file, cb) {
+//             cb(null, path.basename(file.originalname, path.extname(file.originalname)) + '-' + Date.now() + path.extname(file.originalname))
+//         }
+//     }),
+//     // limits: { fileSize: 2000000 }, // In bytes: 2000000 bytes = 2 MB
+//     fileFilter: function (req, file, cb) {
+//         checkFileType(file, cb);
+//     }
+// }).single('profileImage');
 
 // const fileDownload = (err) => {
 //     var fileStream = fs.createWriteStream('./../../FileProcess/Rules.json');
@@ -220,16 +239,17 @@ router.post('/filter', async (req, res) => {
             // number of rules
             for (r = 0; r < linksConfigDict.length; r++) {
                 var rule = {
-                    name: "rule_" + r,
-                    size: 12 * linksConfigDict[r].weight
+                    id: "rule_" + r,
+                    group: 3
+                    // size: 12 * linksConfigDict[r].weight
                 }
                 data.nodes.push(rule)
             }
             //QoS vertices creation with the weight
             for (j = 0; j < linksConfigDict.length; j++) {
                 var weightQos = {
-                    name: "qos_" + linksConfigDict[j].qos,
-                    size: 17
+                    id: "qos_" + linksConfigDict[j].qos,
+                    group: 1,
                 }
                 data.nodes.push(weightQos)
             }
@@ -239,21 +259,21 @@ router.post('/filter', async (req, res) => {
                 var values = Object.values(cleanRuleDict[j]);
                 for (i = 0; i < keys.length; i++) {
                     var term = {
-                        name: keys[i] + "_" + values[j, i],
-                        size: 12
+                        id: keys[i] + "_" + values[j, i],
+                        group: 2
                     }
                     data.nodes.push(term)
                 }
             }
             //making uniq array of terms
             var uniqIds = {};
-            data.nodes = data.nodes.filter(obj => !uniqIds[obj.name] && (uniqIds[obj.name] = true));
+            data.nodes = data.nodes.filter(obj => !uniqIds[obj.id] && (uniqIds[obj.id] = true));
             //vertices sorting
             data.nodes.sort(function (a, b) {
-                if (a.name < b.name) {
+                if (a.id < b.id) {
                     return 1;
                 }
-                if (a.name > b.name) {
+                if (a.id > b.id) {
                     return -1;
                 }
                 return 0;
@@ -262,7 +282,8 @@ router.post('/filter', async (req, res) => {
             for (j = 0; j < linksConfigDict.length; j++) {
                 var connectionRuleQos = {
                     source: "rule_" + j,
-                    target: "qos_" + linksConfigDict[j].qos
+                    target: "qos_" + linksConfigDict[j].qos,
+                    value: 5 * linksConfigDict[j].weight
                 }
                 data.links.push(connectionRuleQos)
             }
@@ -273,7 +294,8 @@ router.post('/filter', async (req, res) => {
                 for (i = 0; i < keys.length; i++) {
                     var connectionTermRule = {
                         source: keys[i] + "_" + values[j, i],
-                        target: "rule_" + j
+                        target: "rule_" + j,
+                        value: 4
                     }
                     data.links.push(connectionTermRule)
                 }
@@ -295,8 +317,8 @@ router.post('/filter', async (req, res) => {
                 ACL: 'public-read'
             };
             const info = s3.upload(parametres, function (err, data) {
-            // console.log("Upload Success", data.Location);
-            console.log(data.Location);
+                // console.log("Upload Success", data.Location);
+                console.log(data.Location);
             });
             console.log(info);
             // res.send(sendLocation);
@@ -322,5 +344,99 @@ router.post('/filter', async (req, res) => {
         }
     }
 })
+
+
+
+var storageGraph = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public')
+    },
+    filename: function (req, file, cb) {
+        cb(null, path.basename(file.originalname, path.extname(file.originalname)) + '-' + Date.now() + path.extname(file.originalname))
+    }
+})
+
+const metafileUpload = multer({
+    storage: storageGraph,
+    fileFilter: function (req, file, cb) {
+        checkFileType(file, cb);
+    }
+}).single('metafile');
+
+// const metafileUpload = multer({ storage: storage }).single('metafile');
+
+router.post('/upload-metagraph', (req, res) => {
+    metafileUpload(req, res, (error) => {
+        console.log('metafiledata', req.file);
+        console.log('error', error);
+        if (error) {
+            console.log('errors', error);
+            res.json({ error: error });
+        } else {
+            // If File not found
+            if (req.file === undefined) {
+                console.log('Error: No File Selected!');
+                res.json('Error: No File Selected');
+            } else {
+                // If Success
+                const metaName = req.file.path;
+                // const imageLocation = req.file.location;
+                // Save the file name into database into profile model
+                res.json(metaName);
+                // location: imageLocation 
+            }
+        }
+    });
+});
+
+router.post('/buildmetagraph', async (req, res) => {
+    if (req.body.metaFileName === null) {
+        errMessage = 'No file uploaded'
+        res.send(errMessage);
+    }
+    else {
+        var fileMeta = req.body.metaFileName;
+        var readMeta = fs.readFileSync(fileMeta);
+        var metaJson = JSON.parse(readMeta);
+        var keysMeta = Object.keys(metaJson);
+
+        // var metaNodes = metaJson.nodes[0];
+        var metaNodes = Object.keys(metaJson.nodes[0]);
+        var metaLinks = Object.keys(metaJson.links[0]);
+        if (keysMeta.indexOf('nodes') === -1 || keysMeta.indexOf('links') === -1) {
+            errorMessage = 'There`re no atributes nodes or links';
+            console.log('NO id or group')
+            res.send(errorMessage)
+        } else {
+            if (metaNodes.indexOf('id') === -1 || metaNodes.indexOf('group') === -1) {
+                errorMessage = 'There`re no atributes id or group in nodes';
+                console.log('NO id or group')
+                res.send(errorMessage)
+            } else {
+                if (metaLinks.indexOf('source') === -1 || metaLinks.indexOf('target') === -1) {
+                    errorMessage = 'There`re no atributes source or group in links';
+                    console.log('NO source or target')
+                    res.send(errorMessage)
+                } else {
+                    res.send(metaJson)
+                    // console.log(metaNodes)
+                    console.log(keysMeta)
+                }
+            }
+        }
+
+
+
+        // var metaLinks = metaJson.links;
+    }
+});
+
+
+mongoose.connect("mongodb://localhost/file-upload", {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+    useCreateIndex: true,
+}).then(() => { console.log("DB is connected") })
+
 // We export the router so that the server.js file can pick it up
 module.exports = router;

@@ -20,6 +20,7 @@
     "body-parser": "^1.18.3",
     "concurrently": "^4.0.1",
     "express": "^4.16.3",
+    "helpers": "0.0.6",
     "mongoose": "^5.3.1",
     "multer": "^1.4.2",
     "multer-s3": "^2.9.0",
