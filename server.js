@@ -1,7 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
-
+var cors = require('cors');
+var http = require('http');
 const router = express.Router();
 
 const app = express();
@@ -11,6 +12,7 @@ const app = express();
  * bodyParser.json() returns a function that is passed as a param to app.use() as middleware
  * With the help of this method, we can now send JSON to our express application.
  */
+app.use(cors());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -35,4 +37,4 @@ app.get('/', (req, res) => res.send('Welcome to HomaPage'))
 
 const port = process.env.PORT || 5000;
 
-app.listen(port, () => console.log(`Server running on port: ${port}`));
+app.listen(port,'0.0.0.0', () => console.log(`Server running on port: ${port}`));
