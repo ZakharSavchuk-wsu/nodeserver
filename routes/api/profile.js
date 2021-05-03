@@ -298,7 +298,7 @@ router.post('/filter', async (req, res) => {
                     var connectionRuleQos = {
                         source: "rule_" + j,
                         target: "qos_" + linksConfigDict[j].qos,
-                        value: 5 * linksConfigDict[j].weight
+                        value: 8 * linksConfigDict[j].weight
                     }
                     data.links.push(connectionRuleQos)
                 }
