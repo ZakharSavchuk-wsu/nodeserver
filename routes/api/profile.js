@@ -144,6 +144,16 @@ router.post('/profile-img-upload', (req, res) => {
 });
 
 // End of single profile upload
+router.post('/rules', async (req, res) => {
+    if (req.body.filePath === null) {
+        errMessage = 'No file uploaded'
+        res.send(errMessage);
+    } else {
+        var params = req.body.filePath;
+        const fileContent = fs.readFileSync(params);
+       res.send(fileContent)
+    }
+})
 
 router.post('/filter', async (req, res) => {
     if (req.body.filePath === null) {
@@ -155,7 +165,7 @@ router.post('/filter', async (req, res) => {
         // const response = await s3.getObject(params).promise() // await the promise
         // const fileContent = params.Body.toString('utf-8');
         const fileContent = fs.readFileSync(params);
-        console.log(fileContent)
+        console.log('fileContent', fileContent)
         var findQos = fileContent;
         var configQos = JSON.parse(findQos);
         var qosKeys = Object.keys(configQos[0]);
@@ -344,7 +354,6 @@ router.post('/filter', async (req, res) => {
 
                 // res.download(`./../../${FileName}`,FileName);
                 res.send(FileName);
-
                 // console.log(sendLocation)
                 // fs.unlinkSync(FileName, (err) => {
                 //     if (err) {
